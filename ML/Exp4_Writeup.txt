@@ -1,0 +1,260 @@
+================================================================================
+                         LAB EXPERIMENT WRITE-UP / REPORT
+================================================================================
+
+EXPERIMENT TITLE:
+K-Means Clustering on Iris Dataset with Elbow Method
+
+SUBJECT CODE: 417521      SUBJECT NAME: Machine Learning      SEM: I
+
+Department of Artificial Intelligence and Data Science Engineering, ADYPSOE
+
+--------------------------------------------------------------------------------
+1. AIM / OBJECTIVE
+--------------------------------------------------------------------------------
+To implement K-Means clustering on the Iris dataset and determine the optimal
+number of clusters (K) using the Elbow Method. The experiment demonstrates
+unsupervised learning by grouping iris flowers based on their physical measurements
+without using class labels during training.
+
+
+--------------------------------------------------------------------------------
+2. PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+The Iris dataset contains measurements of 150 iris flowers across 4 features
+(sepal length, sepal width, petal length, petal width). Without using the species
+labels, apply K-Means clustering to:
+- Find natural groupings in the data.
+- Use the Elbow Method to identify the optimal value of K.
+- Visualize the resulting clusters and their centroids.
+
+
+--------------------------------------------------------------------------------
+3. THEORETICAL BACKGROUND
+--------------------------------------------------------------------------------
+3.1 CLUSTERING
+Clustering is an unsupervised machine learning technique that groups unlabeled
+data points such that:
+- Points within the same cluster are similar to each other.
+- Points in different clusters are dissimilar.
+Unlike classification, there are no predefined labels — the algorithm discovers
+structure on its own.
+
+
+3.2 K-MEANS CLUSTERING
+K-Means partitions n data points into K non-overlapping clusters by minimizing
+the Within-Cluster Sum of Squares (WCSS), also called Inertia:
+
+    WCSS = Σ_k Σ_{x ∈ Ck} ||x − μk||²
+
+Where:
+    K  = Number of clusters
+    Ck = Set of points in cluster k
+    μk = Centroid (mean) of cluster k
+    ||x − μk||² = Squared Euclidean distance from point x to centroid μk
+
+
+3.3 K-MEANS ALGORITHM (Step-by-Step)
+Step 1: Choose K — the number of clusters.
+Step 2: Initialize K centroids randomly from the data points.
+Step 3: Assignment Step — assign each data point to the nearest centroid:
+            c(i) = argmin_k ||x(i) − μk||²
+Step 4: Update Step — recalculate each centroid as the mean of all assigned points:
+            μk = (1 / |Ck|) * Σ_{x ∈ Ck} x
+Step 5: Repeat Steps 3–4 until centroids stop changing (convergence) or the
+        maximum number of iterations is reached.
+
+Simple Example (K=2):
+Points: A(1,2), B(1,4), C(1,0), D(10,2), E(10,4), F(10,0)
+Initial centroids: C1=(1,2), C2=(10,2)
+After Step 3: Cluster 1 = {A,B,C}, Cluster 2 = {D,E,F}
+After Step 4: C1=(1,2), C2=(10,2) — no change → Converged.
+
+
+3.4 ELBOW METHOD
+The Elbow Method is used to find the optimal K by plotting WCSS against K:
+- As K increases, WCSS always decreases (more clusters = tighter groupings).
+- The rate of decrease slows after the true K.
+- The "elbow" — the point where the decrease rate sharply flattens — is the
+  optimal number of clusters.
+
+WCSS values for K = 1 to 10 (this experiment):
+    K=1: 600.00    K=2: 222.36    K=3: 139.82    K=4: 114.09
+    K=5:  90.93    K=6:  81.54    K=7:  72.63    K=8:  62.54
+    K=9:  55.12    K=10: 47.39
+The sharpest drop is between K=1→2 and K=2→3.
+After K=3, the decrease becomes gradual → Elbow at K=3.
+
+
+3.5 EUCLIDEAN DISTANCE
+K-Means uses Euclidean distance to measure similarity between a point and centroid:
+
+    d(x, μ) = √( Σ (xi − μi)² )
+
+For 4 features (Iris): d = √((s₁-c₁)² + (s₂-c₂)² + (p₁-c₃)² + (p₂-c₄)²)
+
+
+3.6 WHY STANDARDIZE BEFORE K-MEANS?
+Features with larger numerical ranges dominate the distance calculation.
+Iris features: sepal length (~4–8 cm) vs. petal width (~0.1–2.5 cm).
+StandardScaler transforms each feature to zero mean and unit variance:
+    z = (x − μ) / σ
+This ensures all four features contribute equally to distance computation.
+
+
+3.7 LIMITATIONS OF K-MEANS
+- Requires K to be specified in advance.
+- Sensitive to initial centroid positions (solved via n_init=10 — runs 10 times).
+- Assumes spherical, equally-sized clusters.
+- Sensitive to outliers (uses mean, not median).
+
+
+--------------------------------------------------------------------------------
+4. DATASET SPECIFICATIONS
+--------------------------------------------------------------------------------
+Dataset    : Iris Dataset (sklearn.datasets.load_iris)
+Samples    : 150 iris flower measurements
+Features   : 4 continuous numerical features
+    1. Sepal Length (cm)
+    2. Sepal Width  (cm)
+    3. Petal Length (cm)
+    4. Petal Width  (cm)
+Target     : Species label (NOT used during clustering — unsupervised)
+    - Iris setosa     (50 samples)
+    - Iris versicolor (50 samples)
+    - Iris virginica  (50 samples)
+
+
+--------------------------------------------------------------------------------
+5. STEP-BY-STEP PROCEDURE
+--------------------------------------------------------------------------------
+Step 1 : Import pandas, numpy, matplotlib, StandardScaler, KMeans.
+Step 2 : Load the Iris dataset using load_iris(); create a DataFrame.
+Step 3 : Standardize the 4 features using StandardScaler.
+Step 4 : Run KMeans for K = 1 to 10; record WCSS (inertia_) for each K.
+Step 5 : Plot the Elbow Curve (K vs. WCSS); identify optimal K = 3.
+Step 6 : Apply KMeans with K=3 (n_init=10, random_state=42).
+Step 7 : Assign cluster labels to the DataFrame.
+Step 8 : Visualize clusters using Petal Length vs. Petal Width scatter plot,
+         with centroids marked as red X markers.
+Step 9 : Print cluster centroids and per-cluster sample counts.
+
+
+--------------------------------------------------------------------------------
+6. EXPERIMENTAL RESULTS
+--------------------------------------------------------------------------------
+
+6.1 DATASET:
+    Shape: (150, 4)   |   Features: 4   |   Samples: 150
+
+6.2 WCSS (INERTIA) FOR ELBOW METHOD:
+    -----------------------------------------------
+     K    |   WCSS (Inertia)   |   Drop from prev K
+    -----------------------------------------------
+      1   |      600.00        |       —
+      2   |      222.36        |     377.64  ↓ large
+      3   |      139.82        |      82.54  ↓ significant (ELBOW)
+      4   |      114.09        |      25.73  ↓ small
+      5   |       90.93        |      23.16  ↓ small
+      6   |       81.54        |       9.39
+      7   |       72.63        |       8.91
+      8   |       62.54        |      10.09
+      9   |       55.12        |       7.42
+     10   |       47.39        |       7.73
+    -----------------------------------------------
+    Optimal K = 3  (elbow visible between K=2 and K=4)
+
+6.3 K-MEANS RESULTS (K = 3):
+    Cluster 0: 53 samples
+    Cluster 1: 50 samples
+    Cluster 2: 47 samples
+
+6.4 CLUSTER CENTROIDS (Standardized Feature Space):
+    ------------------------------------------------------------------
+     Cluster  | Sepal Length | Sepal Width | Petal Length | Petal Width
+    ------------------------------------------------------------------
+        0     |   -0.0502    |   -0.8834   |    0.3477    |   0.2815
+        1     |   -1.0146    |    0.8533   |   -1.3050    |  -1.2549
+        2     |    1.1360    |    0.0884   |    0.9962    |   1.0175
+    ------------------------------------------------------------------
+    Interpretation:
+    Cluster 1: Low petal length & width → Iris setosa (small, distinct)
+    Cluster 0: Medium petal measurements → Iris versicolor (medium)
+    Cluster 2: High petal length & width → Iris virginica (large)
+
+6.5 VISUALIZATION:
+    - Elbow Plot: Shows clear elbow at K=3.
+    - Scatter Plot (Petal Length vs. Petal Width): Three distinct, well-separated
+      clusters with red X centroids visible at the center of each group.
+
+
+--------------------------------------------------------------------------------
+7. ANALYSIS & DISCUSSION
+--------------------------------------------------------------------------------
+1. The Elbow Method clearly indicates K=3 as the optimal number of clusters,
+   which matches the known 3 species of iris flowers (setosa, versicolor, virginica)
+   — even though the species labels were NOT provided to the algorithm.
+
+2. The clustering on Petal Length vs. Petal Width produces the clearest visual
+   separation. Setosa is completely isolated (small petals), while versicolor and
+   virginica overlap slightly (which also causes misclassification in supervised
+   models).
+
+3. Standardization was essential. Without it, sepal length (4–8 cm) would dominate
+   over petal width (0.1–2.5 cm), biasing cluster formation toward sepal features.
+
+4. K-Means successfully discovers the natural groupings in the data without any
+   label information, demonstrating the power of unsupervised learning.
+
+
+--------------------------------------------------------------------------------
+8. VIVA QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q1. What is the difference between supervised and unsupervised learning?
+Ans: Supervised learning trains on labeled data (input + output pairs) to predict
+     outputs for new inputs. Unsupervised learning finds hidden structure in
+     unlabeled data. K-Means is unsupervised — it groups data without using labels.
+
+Q2. What is WCSS / Inertia?
+Ans: WCSS (Within-Cluster Sum of Squares) measures the total squared distances
+     from each data point to its assigned cluster centroid. Lower WCSS means
+     tighter, more compact clusters.
+
+Q3. What is the Elbow Method?
+Ans: A technique to determine the optimal K by plotting WCSS vs. K. As K increases,
+     WCSS decreases. The "elbow" point — where the rate of decrease sharply slows —
+     indicates the optimal K, beyond which adding clusters gives diminishing returns.
+
+Q4. Why is n_init=10 used?
+Ans: K-Means results depend on random initial centroids. Running n_init=10 means
+     the algorithm runs 10 times with different initializations and keeps the best
+     result (lowest WCSS), avoiding poor local minima.
+
+Q5. What distance metric does K-Means use?
+Ans: By default, K-Means uses Euclidean distance to measure how close a point is
+     to each centroid: d = √Σ(xi − μi)². The point is assigned to the nearest centroid.
+
+Q6. What are the limitations of K-Means?
+Ans: (1) K must be specified in advance. (2) Sensitive to initial centroids.
+     (3) Assumes spherical, equally-sized clusters. (4) Sensitive to outliers.
+     (5) Not suitable for non-convex cluster shapes.
+
+
+--------------------------------------------------------------------------------
+9. CONCLUSION
+--------------------------------------------------------------------------------
+K-Means clustering was successfully implemented on the Iris dataset (150 samples,
+4 features). The Elbow Method identified K=3 as the optimal number of clusters,
+consistent with the 3 known iris species.
+
+Key Results:
+- WCSS dropped sharply from K=1 (600.00) to K=3 (139.82), then slowed → Elbow at K=3.
+- Three well-separated clusters formed: small petals (Setosa), medium (Versicolor),
+  large petals (Virginica).
+- Cluster sizes: 50, 53, 47 samples — roughly balanced.
+- Feature standardization and n_init=10 ensured stable, reliable clustering.
+
+================================================================================
+                                END OF EXPERIMENT
+================================================================================
+

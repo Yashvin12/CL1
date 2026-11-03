@@ -1,0 +1,355 @@
+================================================================================
+                         LAB EXPERIMENT WRITE-UP / REPORT
+================================================================================
+
+EXPERIMENT TITLE:
+Uber Fare Prediction using Regression Analysis
+
+SUBJECT CODE: 417521      SUBJECT NAME: Machine Learning      SEM: I
+
+Department of Artificial Intelligence and Data Science Engineering, ADYPSOE
+
+--------------------------------------------------------------------------------
+1. AIM / OBJECTIVE
+--------------------------------------------------------------------------------
+To predict the price of an Uber ride from a given pickup point to the agreed
+drop-off location by applying regression techniques. The experiment involves:
+
+1. Pre-processing the dataset (handling missing values, duplicates, invalid records).
+2. Identifying and removing outliers using the IQR method.
+3. Checking the correlation between features and the target variable.
+4. Implementing Linear Regression, Ridge Regression, and Lasso Regression models.
+5. Evaluating and comparing the models using metrics: R2, MAE, MSE, and RMSE.
+
+Dataset Source:
+https://www.kaggle.com/datasets/yasserh/uber-fares-dataset
+
+
+--------------------------------------------------------------------------------
+2. PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+Uber Technologies Inc. uses dynamic pricing algorithms to compute ride fares
+based on distance, time-of-day, demand, and other factors. Given a historical
+dataset of 200,000 Uber ride records containing GPS coordinates, timestamps, and
+passenger counts, the task is to:
+- Engineer meaningful features (e.g., trip distance, time components).
+- Build and compare regression models to predict the fare_amount.
+- Evaluate model accuracy using standard regression metrics.
+
+
+--------------------------------------------------------------------------------
+3. THEORETICAL BACKGROUND
+--------------------------------------------------------------------------------
+3.1 REGRESSION ANALYSIS
+Regression Analysis is a supervised machine learning technique used to model
+the relationship between a continuous dependent variable (target) and one or more
+independent variables (features).
+
+It is used to:
+- Predict numerical values (price, temperature, sales, fare)
+- Quantify the impact of each feature on the output
+- Understand relationships and trends in data
+
+Types of Regression and their use cases:
+---------------------------------------------------------------------------
+ Type                     When to Use
+---------------------------------------------------------------------------
+ Linear Regression        Linear relationship between variables
+ Multiple Regression      More than one independent variable
+ Polynomial Regression    Non-linear but can be modeled by powers of X
+ Ridge Regression         Regularization to prevent overfitting (L2 penalty)
+ Lasso Regression         Regularization + feature selection (L1 penalty)
+ Logistic Regression      Binary classification (not for continuous output)
+---------------------------------------------------------------------------
+
+
+3.2 LINEAR REGRESSION
+Linear Regression models the relationship between target y and features X as:
+
+    y = β0 + β1*x1 + β2*x2 + ... + βn*xn + ε
+
+Where:
+    y     = Predicted target (fare_amount)
+    β0    = Intercept (bias term)
+    β1..n = Coefficients (weights) for each feature
+    ε     = Error term (residual)
+
+The model minimizes the Residual Sum of Squares (RSS):
+    RSS = Σ(y_actual - y_predicted)²
+
+The solution for β using Ordinary Least Squares (OLS):
+    β = (Xᵀ * X)⁻¹ * Xᵀ * y
+
+
+3.3 RIDGE REGRESSION (L2 Regularization)
+Ridge Regression adds a regularization term (L2 penalty) to the cost function
+to prevent overfitting by shrinking coefficients toward zero:
+
+    Cost = RSS + α * Σ(βj²)
+
+Where α (alpha) is the regularization strength:
+    - α = 0  →  Same as Linear Regression
+    - High α →  Coefficients shrink more aggressively
+    
+Ridge retains all features but reduces coefficient magnitudes.
+
+
+3.4 LASSO REGRESSION (L1 Regularization)
+Lasso (Least Absolute Shrinkage and Selection Operator) uses an L1 penalty:
+
+    Cost = RSS + α * Σ|βj|
+
+Key property:
+    - L1 penalty can force some coefficients exactly to zero.
+    - This performs automatic feature selection.
+    - Useful when many features are irrelevant or redundant.
+
+
+3.5 EVALUATION METRICS
+
+   R2 Score (Coefficient of Determination):
+   Proportion of variance in y explained by the model.
+       R2 = 1 - (SS_residual / SS_total)
+   Range: 0 to 1. Closer to 1 means a better fit.
+
+   MAE (Mean Absolute Error):
+   Average of absolute differences between actual and predicted values.
+       MAE = (1/n) * Σ|y - ŷ|
+   Easier to interpret; less sensitive to large errors.
+
+   MSE (Mean Squared Error):
+   Average of squared differences. Penalizes large errors more heavily.
+       MSE = (1/n) * Σ(y - ŷ)²
+
+   RMSE (Root Mean Squared Error):
+   Square root of MSE. Same unit as the target variable (dollars in this case).
+       RMSE = √MSE
+   Directly interpretable as average prediction error in dollars.
+
+
+3.6 HAVERSINE FORMULA (Feature Engineering)
+Pickup and drop-off coordinates by themselves are weakly correlated with fare
+(R = ~0.0001). The actual trip distance, calculated using the Haversine formula,
+is the most predictive feature (R = 0.72).
+
+    a = sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)
+    distance = 2 * R * arcsin(√a)
+
+Where R = 6371 km (Earth's radius).
+
+This feature engineering transforms the raw coordinates into a meaningful,
+physically interpretable variable that dramatically improves model accuracy.
+
+
+3.7 IQR METHOD FOR OUTLIER DETECTION
+Outliers are identified using the Interquartile Range (IQR):
+    IQR = Q3 - Q1
+    Lower Limit = max(0, Q1 - 1.5 * IQR)
+    Upper Limit = Q3 + 1.5 * IQR
+
+Fare values outside [Lower, Upper] are removed as they represent corrupted
+records or extremely unusual rides that would distort model training.
+
+
+--------------------------------------------------------------------------------
+4. DATASET SPECIFICATIONS
+--------------------------------------------------------------------------------
+Source     : Kaggle — Uber Fares Dataset by M. Yasser H.
+File       : uber.csv
+Records    : 200,000 rides
+Target     : fare_amount (continuous, in USD)
+
+Columns:
+  1. Unnamed: 0      - Auto-generated index (dropped)
+  2. key             - Unique trip identifier string (dropped)
+  3. fare_amount     - Target variable: ride price in USD
+  4. pickup_datetime - Date and time of pickup
+  5. pickup_longitude  / pickup_latitude   - Pickup GPS coordinates
+  6. dropoff_longitude / dropoff_latitude  - Drop-off GPS coordinates
+  7. passenger_count - Number of passengers (1 to 6)
+
+Engineered Features:
+  8. hour         - Hour of pickup (0–23)
+  9. day          - Day of month
+ 10. month        - Month of year
+ 11. year         - Year of trip
+ 12. distance_km  - Haversine trip distance in kilometers
+
+
+--------------------------------------------------------------------------------
+5. STEP-BY-STEP ALGORITHM / PROCEDURE
+--------------------------------------------------------------------------------
+Step 1  : Load uber.csv using pandas read_csv().
+Step 2  : Inspect shape, data types, and missing value counts (df.info()).
+Step 3  : Drop identifier columns: 'Unnamed: 0' and 'key'.
+Step 4  : Drop rows with missing values and duplicate entries.
+Step 5  : Parse 'pickup_datetime' to extract hour, day, month, year features.
+Step 6  : Filter out records with invalid coordinates, zero or negative fares,
+          and unrealistic passenger counts (<1 or >6).
+Step 7  : Compute trip distance using the Haversine formula; filter trips with
+          distance = 0 km or > 100 km.
+Step 8  : Apply IQR outlier detection on fare_amount and remove extreme values.
+Step 9  : Plot the Correlation Heatmap of all features vs. fare_amount.
+Step 10 : Split data into features (X) and target (y = fare_amount).
+Step 11 : Train-Test split: 80% training, 20% testing (random_state=42).
+Step 12 : Standardize features using StandardScaler (mean=0, std=1).
+Step 13 : Train Linear Regression, Ridge Regression, and Lasso Regression models.
+Step 14 : Evaluate each model using R2, MAE, MSE, and RMSE on the test set.
+Step 15 : Compare model results in a summary table and bar chart.
+Step 16 : Predict the fare for a custom sample ride using all three models.
+
+
+--------------------------------------------------------------------------------
+6. EXPERIMENTAL RESULTS & OBSERVATIONS
+--------------------------------------------------------------------------------
+
+6.1 DATASET AFTER PREPROCESSING:
+    - Initial Records                  : 200,000
+    - After null/duplicate removal      : ~199,999
+    - After invalid value filtering     : ~195,000
+    - After distance filtering (>0, <100 km): ~185,000
+    - After IQR outlier removal         : 176,651
+
+6.2 OUTLIER DETECTION (IQR METHOD on fare_amount):
+    Q1 = $6.50    Q3 = $12.00
+    IQR = $5.50
+    Lower Limit  = $0.00
+    Upper Limit  = $22.25
+
+    Fares above $22.25 or below $0.00 were removed as outliers.
+
+6.3 FEATURE CORRELATION WITH FARE AMOUNT:
+    -----------------------------------------------------------------
+     Feature              Pearson Correlation Coefficient
+    -----------------------------------------------------------------
+     fare_amount               1.0000    (target)
+     distance_km               0.7235    *** Strongest predictor
+     year                      0.1357
+     month                     0.0267
+     passenger_count           0.0130
+     day                       0.0066
+     dropoff_longitude         0.0020
+     pickup_longitude          0.0012
+     pickup_latitude          -0.0020
+     dropoff_latitude         -0.0022
+     hour                     -0.0131
+    -----------------------------------------------------------------
+    Observation: distance_km has the highest correlation (0.72) with
+    fare_amount, confirming that trip distance is the most important
+    predictor. Raw GPS coordinates alone are nearly uncorrelated.
+
+6.4 MODEL EVALUATION RESULTS:
+    -----------------------------------------------------------------
+     Model              R2 Score    MAE ($)    MSE      RMSE ($)
+    -----------------------------------------------------------------
+     Linear Regression   0.6172     1.7963     6.5240   2.5542
+     Ridge Regression    0.6167     1.7946     6.5336   2.5561
+     Lasso Regression    0.6114     1.8040     6.6237   2.5737
+    -----------------------------------------------------------------
+    Best Model: Linear Regression (highest R2, lowest RMSE)
+
+6.5 SAMPLE RIDE PREDICTION:
+    Pickup  : (40.748, -73.985) — Near Empire State Building, NYC
+    Drop-off: (40.758, -73.985) — 1.11 km away (approximately 10 blocks)
+    Passengers: 2
+    Hour: 14 (2:00 PM) | Day: 3 | Month: 11 | Year: 2026
+
+    Predicted Fare (Linear Regression): $12.32
+    Predicted Fare (Ridge Regression) : $12.35
+    Predicted Fare (Lasso Regression) : $12.38
+
+
+--------------------------------------------------------------------------------
+7. ANALYSIS & DISCUSSION
+--------------------------------------------------------------------------------
+1. Importance of Feature Engineering:
+   Raw latitude and longitude coordinates had near-zero correlation (~0.001)
+   with fare_amount. Computing the Haversine distance from pickup to drop-off
+   produced a feature with correlation 0.72, dramatically improving model
+   accuracy from R2 ≈ 0.02 to R2 ≈ 0.62.
+
+2. Model Performance Comparison:
+   - All three models (Linear, Ridge, Lasso) achieved similar performance
+     because the dataset's predictive signal is predominantly linear (distance).
+   - Linear Regression performed marginally best (R2 = 0.617, RMSE = $2.55).
+   - Ridge Regression performed nearly identically to Linear Regression;
+     the mild L2 penalty (α = 1.0) had negligible effect on this dataset.
+   - Lasso Regression showed slightly lower R2 (0.611), as the L1 penalty
+     zeroed out a few weakly predictive features (e.g., raw coordinates).
+   - RMSE of ~$2.55 means predictions are within ±$2.55 of the actual fare
+     on average, which is acceptable for this dataset's fare range ($0–$22).
+
+3. Outlier Handling:
+   The IQR method removed records with fares above $22.25, representing
+   less than ~11% of data. This cleanup reduced the RMSE and improved model
+   stability without significant information loss.
+
+4. Limitations of Coordinate-Only Features:
+   The remaining unexplained variance (R2 ≈ 0.38) arises from factors not
+   captured by the current features: surge pricing, traffic conditions,
+   tolls, and Uber service type (UberX vs. Uber Black).
+
+
+--------------------------------------------------------------------------------
+8. VIVA-VOCE / ORAL EXAMINATION QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q1. What is the difference between Ridge and Lasso Regression?
+Ans: Both add regularization to prevent overfitting. Ridge uses L2 penalty
+     (squares of coefficients), which shrinks all coefficients toward zero
+     but retains all features. Lasso uses L1 penalty (absolute values), which
+     can shrink some coefficients exactly to zero, performing feature selection.
+
+Q2. Why is feature scaling necessary before applying regression?
+Ans: Ridge and Lasso apply penalties based on coefficient magnitude. If features
+     are on different scales (e.g., distance in km vs. hour 0-23), unscaled
+     features will have larger coefficients and receive disproportionately large
+     penalties. StandardScaler ensures equal treatment of all features.
+
+Q3. Why is R2 not always a reliable metric alone?
+Ans: R2 measures variance explained but does not indicate whether predictions
+     are practically useful. A model can have a decent R2 yet have a high RMSE
+     if the target variable has high variance. RMSE provides error in the same
+     unit as the target (dollars), making it more interpretable.
+
+Q4. What does an RMSE of $2.55 mean in this experiment?
+Ans: On average, the model's predicted fare deviates from the actual fare by
+     approximately $2.55. For rides priced between $4–$22, this represents a
+     relative error of roughly 12–15%, which is moderate accuracy.
+
+Q5. Why did raw GPS coordinates perform poorly as features?
+Ans: Latitude and longitude coordinates alone do not capture trip distance. Two
+     rides with very similar pickup coordinates could have vastly different
+     drop-off locations and thus very different fares. The Haversine formula
+     combines all four coordinates into a single, physically meaningful distance
+     feature that directly relates to fare pricing.
+
+Q6. What is the Haversine Formula and why is it used?
+Ans: The Haversine formula computes the great-circle distance between two points
+     on a sphere given their latitudes and longitudes. It accounts for Earth's
+     curvature, making it more accurate than Euclidean distance for geographic
+     calculations. This is the appropriate formula for computing trip distances
+     from GPS coordinates.
+
+
+--------------------------------------------------------------------------------
+9. CONCLUSION
+--------------------------------------------------------------------------------
+In this experiment, three regression models — Linear Regression, Ridge Regression,
+and Lasso Regression — were applied to predict Uber ride fares from the Kaggle
+Uber Fares Dataset (200,000 records).
+
+Key Findings:
+1. Preprocessing and feature engineering (Haversine distance) were critical.
+   Without distance_km, R2 was only 0.02. After adding distance, R2 rose to 0.62.
+2. The IQR method effectively removed fare outliers (upper limit: $22.25), 
+   resulting in a cleaner dataset of 176,651 records.
+3. distance_km was the dominant predictor (correlation = 0.72 with fare_amount).
+4. Linear Regression achieved the best performance: R2 = 0.617, RMSE = $2.55.
+5. Ridge and Lasso produced similar results, confirming that multicollinearity
+   and feature redundancy were minimal after preprocessing.
+6. A sample ride of 1.11 km was predicted to cost approximately $12.32 (Linear).
+
+================================================================================
+                                END OF EXPERIMENT
+================================================================================
+

@@ -1,0 +1,444 @@
+================================================================================
+                    LAB EXPERIMENT WRITE-UP / REPORT
+================================================================================
+
+EXPERIMENT TITLE:
+Dimensionality Reduction using Principal Component Analysis (PCA) on Wine Dataset
+
+SUBJECT / DOMAIN: 
+Machine Learning / Data Science / Pattern Recognition (CL-1)
+
+--------------------------------------------------------------------------------
+1. AIM / OBJECTIVE
+--------------------------------------------------------------------------------
+To implement and apply the Principal Component Analysis (PCA) algorithm for 
+dimensionality reduction on the Wine dataset consisting of 13 chemical features. 
+The objective is to project the high-dimensional data onto a lower-dimensional 
+subspace (2 Principal Components) while capturing the maximum variance in the 
+measurements, thereby enabling 2D visualization and clear distinction among 
+different wine classes.
+
+Dataset Source:
+https://media.geeksforgeeks.org/wp-content/uploads/Wine.csv
+
+
+--------------------------------------------------------------------------------
+2. PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+A winery/laboratory dataset includes measurements for 13 distinct continuous 
+chemical variables of wine samples (e.g., alcohol, ash, magnesium, flavanoids, 
+color intensity, proline, etc.) derived from three different cultivars 
+(Customer Segments 1, 2, and 3). 
+Analyzing and visualizing data with 13 dimensions directly is impossible for 
+human visual perception and introduces the "curse of dimensionality" into 
+downstream classification algorithms. 
+
+The task is to:
+1. Standardize the multi-scale chemical measurements.
+2. Formulate and apply the PCA algorithm to identify the principal orthogonal axes 
+   of maximal variance.
+3. Compute eigenvalues, eigenvectors, and explained variance ratios.
+4. Transform the 13-dimensional feature space into 2 principal components.
+5. Visually inspect the principal components in a 2D scatter plot to evaluate how 
+   effectively the wine types are separated.
+
+
+--------------------------------------------------------------------------------
+3. THEORETICAL BACKGROUND
+--------------------------------------------------------------------------------
+3.1 WHAT IS PRINCIPAL COMPONENT ANALYSIS (PCA)?
+Principal Component Analysis (PCA) is an unsupervised, linear dimensionality 
+reduction technique widely used in machine learning and data analysis. It converts 
+a set of observations of possibly correlated variables into a set of linearly 
+uncorrelated variables called "Principal Components" (PCs).
+
+Key properties of Principal Components:
+- Orthogonality: All principal components are mutually perpendicular (uncorrelated).
+- Variance Ordering: The 1st principal component (PC1) accounts for the largest 
+  possible variance in the data; the 2nd principal component (PC2) accounts for 
+  the second largest variance orthogonal to PC1, and so forth.
+
+3.2 WHY IS DIMENSIONALITY REDUCTION NECESSARY?
+- Overcoming Curse of Dimensionality: High-dimensional spaces lead to data sparsity, 
+  overfitting, and high computational costs.
+- Elimination of Multicollinearity: Correlated features carry redundant information; 
+  PCA transforms them into orthogonal, uncorrelated features.
+- Data Visualization: High-dimensional spaces (>3D) cannot be plotted. PCA allows 
+  projection onto 2D or 3D planes for exploratory data analysis and clustering.
+- Noise Filtering: Components associated with small eigenvalues usually capture random 
+  noise and can be discarded without significant information loss.
+
+3.3 MATHEMATICAL FORMULATION OF PCA:
+The step-by-step mathematical derivation of PCA is as follows:
+
+Step 1: Standardization (Z-score Normalization)
+Variables in physical datasets are measured in different units (e.g., Alcohol in %, 
+Magnesium in mg/L, Proline in mg/L). Without scaling, variables with large absolute 
+ranges (e.g., Proline ranging from 278 to 1680) will artificially dominate the 
+variance calculation.
+For each feature j and sample i:
+    z_ij = (x_ij - μ_j) / σ_j
+Where:
+    μ_j = Mean of feature j
+    σ_j = Standard deviation of feature j
+
+Step 2: Covariance Matrix Computation
+The covariance matrix Σ captures pairwise linear relationships between all features:
+    Σ = (1 / (n - 1)) * (Z^T * Z)
+Where:
+    Z is the standardized data matrix (n × d)
+    Σ is a square, symmetric matrix of size (d × d), where d = 13 features.
+
+Step 3: Eigen-decomposition of the Covariance Matrix
+We solve the characteristic equation for eigenvalues (λ) and eigenvectors (v):
+    Σ * v = λ * v
+    (Σ - λ * I) * v = 0
+Where:
+    λ represents the magnitude of variance explained along the eigenvector direction.
+    v is the unit eigenvector (direction of the principal axis).
+For d = 13 features, we obtain 13 eigenvalues (λ_1, λ_2, ..., λ_13) and 13 
+corresponding eigenvectors (v_1, v_2, ..., v_13).
+
+Step 4: Sorting and Explained Variance Ratio
+Eigenvalues are sorted in descending order:
+    λ_1 >= λ_2 >= λ_3 >= ... >= λ_d
+The Explained Variance Ratio for component k is:
+    EVR_k = λ_k / (sum_{i=1}^{d} λ_i)
+The Cumulative Explained Variance for k components is:
+    Cumulative_EVR_k = (sum_{i=1}^{k} λ_i) / (sum_{i=1}^{d} λ_i)
+
+Step 5: Construction of the Projection Matrix (W)
+Select the top k eigenvectors corresponding to the k largest eigenvalues. For 2D 
+visualization, k = 2:
+    W = [v_1, v_2]  (Dimension: d × k, i.e., 13 × 2)
+
+Step 6: Projection onto the Principal Subspace
+Transform the original standardized dataset Z (n × d) into the reduced matrix Y (n × k):
+    Y = Z * W
+Where Y is the transformed dataset containing coordinates for PC1 and PC2 (178 × 2).
+
+
+--------------------------------------------------------------------------------
+4. DATASET SPECIFICATIONS
+--------------------------------------------------------------------------------
+- Total Instances: 178 wine samples
+- Number of Features: 13 continuous chemical attributes
+- Target Variable: Customer_Segment (3 distinct wine cultivars / types)
+  * Class 1: 59 samples (33.15%)
+  * Class 2: 71 samples (39.89%)
+  * Class 3: 48 samples (26.97%)
+
+Feature Details:
+ 1. Alcohol: Alcohol content (% vol)
+ 2. Malic_Acid: Organic acid affecting tartness (g/L)
+ 3. Ash: Mineral residue after combustion (g/L)
+ 4. Ash_Alcanity: Alkalinity of ash (mEq/L)
+ 5. Magnesium: Magnesium content (mg/L)
+ 6. Total_Phenols: Total concentration of phenolic compounds (g/L)
+ 7. Flavanoids: Subclass of polyphenols with antioxidant properties (g/L)
+ 8. Nonflavanoid_Phenols: Phenols not bound to flavanoid structure (g/L)
+ 9. Proanthocyanins: Condensed tannins influencing mouthfeel (g/L)
+10. Color_Intensity: Absorbance measurement representing wine color depth
+11. Hue: Ratio of absorbance measurements (color tone)
+12. OD280: OD280/OD315 ratio of diluted wines (protein/phenolic measurement)
+13. Proline: Predominant amino acid in wine (mg/L)
+
+
+--------------------------------------------------------------------------------
+5. STEP-BY-STEP ALGORITHM / PROCEDURE
+--------------------------------------------------------------------------------
+1. Import necessary libraries: pandas, numpy, scikit-learn, and matplotlib.
+2. Load the dataset from 'Wine.csv' (or directly via URL).
+3. Inspect data types, verify no missing values exist (178 non-null rows).
+4. Separate the feature matrix X (columns 0 to 12) from class labels y (column 13).
+5. Apply StandardScaler to normalize all 13 features to zero mean and unit variance.
+6. Instantiate PCA(n_components=2) from sklearn.decomposition.
+7. Fit the PCA model on scaled features and transform the data: X_pca = pca.fit_transform(X_scaled).
+8. Compute and print the Explained Variance Ratio for PC1 and PC2.
+9. Inspect feature loadings (eigenvector weights) to interpret what chemical properties 
+   each principal component represents.
+10. Plot the Scree Plot and Cumulative Variance curve to justify component selection.
+11. Create a 2D Scatter Plot of PC1 vs. PC2, color-coded by wine class, to visualize 
+    cluster separation.
+12. Document observations, variance retained, and conclusions.
+
+
+--------------------------------------------------------------------------------
+6. COMPLETE PYTHON SOURCE CODE
+--------------------------------------------------------------------------------
+```python
+# ==============================================================================
+# Experiment: PCA on Wine Dataset for Dimensionality Reduction
+# ==============================================================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Step 1: Load Dataset
+dataset_url = "Wine.csv"  # or "https://media.geeksforgeeks.org/wp-content/uploads/Wine.csv"
+df = pd.read_csv(dataset_url)
+
+print("="*60)
+print("1. DATASET SHAPE & INITIAL ROWS:")
+print(f"Shape: {df.shape} (178 samples, 13 features + 1 target)")
+print(df.head(3))
+print("="*60)
+
+# Step 2: Separate features (X) and target labels (y)
+X = df.iloc[:, 0:13].values
+y = df.iloc[:, 13].values
+feature_names = df.columns[0:13]
+
+# Step 3: Feature Standardization
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+print("\n2. STANDARDIZATION CHECK:")
+print(f"Original feature means (first 3): {X.mean(axis=0)[:3].round(2)}")
+print(f"Scaled feature means (first 3):   {X_scaled.mean(axis=0)[:3].round(4)}")
+print(f"Scaled feature variance (first 3): {X_scaled.var(axis=0)[:3].round(4)}")
+print("="*60)
+
+# Step 4: Eigen-decomposition & Variance Analysis (Mathematical Validation)
+cov_matrix = np.cov(X_scaled.T)
+eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+
+# Sort eigenvalues in descending order
+sort_indices = np.argsort(eigenvalues)[::-1]
+sorted_evals = eigenvalues[sort_indices].real
+var_exp = (sorted_evals / np.sum(sorted_evals)) * 100
+cum_var_exp = np.cumsum(var_exp)
+
+print("\n3. EIGENVALUES & EXPLAINED VARIANCE RATIO FOR ALL 13 COMPONENTS:")
+print(f"{'PC':<5} | {'Eigenvalue':<12} | {'Variance Explained (%)':<24} | {'Cumulative (%)':<15}")
+print("-" * 65)
+for i in range(len(sorted_evals)):
+    print(f"PC{i+1:<3} | {sorted_evals[i]:<12.4f} | {var_exp[i]:<24.2f} | {cum_var_exp[i]:<15.2f}")
+print("="*60)
+
+# Step 5: Applying PCA for 2 Components
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+pc1_var = pca.explained_variance_ratio_[0] * 100
+pc2_var = pca.explained_variance_ratio_[1] * 100
+total_2d_var = pc1_var + pc2_var
+
+print(f"\n4. PCA 2-COMPONENT SUMMARY:")
+print(f"PC1 Variance Explained: {pc1_var:.2f}%")
+print(f"PC2 Variance Explained: {pc2_var:.2f}%")
+print(f"Total Variance Captured by 2 Components: {total_2d_var:.2f}%")
+print("="*60)
+
+# Step 6: Feature Loadings (Correlation of features with PC1 & PC2)
+loadings = pd.DataFrame(
+    pca.components_.T,
+    columns=['PC1_Weight', 'PC2_Weight'],
+    index=feature_names
+)
+print("\n5. FEATURE LOADINGS (EIGENVECTORS):")
+print(loadings.round(4))
+print("="*60)
+
+# Step 7: Visualizations
+# A) Scree Plot & Cumulative Variance
+plt.figure(figsize=(11, 4.5))
+
+plt.subplot(1, 2, 1)
+plt.bar(range(1, 14), var_exp, color='royalblue', edgecolor='black', alpha=0.75)
+plt.xlabel('Principal Component Index')
+plt.ylabel('Variance Explained (%)')
+plt.title('Scree Plot of Wine Dataset')
+plt.xticks(range(1, 14))
+
+plt.subplot(1, 2, 2)
+plt.plot(range(1, 14), cum_var_exp, marker='o', color='darkred', linewidth=2)
+plt.axhline(y=total_2d_var, color='blue', linestyle='--', label=f'2 PCs: {total_2d_var:.1f}%')
+plt.axhline(y=80, color='green', linestyle=':', label='80% Variance Threshold')
+plt.xlabel('Number of Components')
+plt.ylabel('Cumulative Variance (%)')
+plt.title('Cumulative Explained Variance Curve')
+plt.xticks(range(1, 14))
+plt.legend()
+
+plt.tight_layout()
+plt.savefig('pca_scree_plot.png', dpi=300)
+plt.show()
+
+# B) 2D Scatter Plot of Transformed Wine Data
+plt.figure(figsize=(9, 6))
+wine_classes = [1, 2, 3]
+colors = ['#E63946', '#2A9D8F', '#457B9D']
+labels = ['Wine Class 1', 'Wine Class 2', 'Wine Class 3']
+
+for cls, color, label in zip(wine_classes, colors, labels):
+    plt.scatter(
+        X_pca[y == cls, 0],
+        X_pca[y == cls, 1],
+        c=color,
+        label=label,
+        edgecolors='k',
+        s=60,
+        alpha=0.85
+    )
+
+plt.title('PCA 2D Projection of Wine Dataset (13 Features -> 2 PCs)', fontsize=13, fontweight='bold')
+plt.xlabel(f'Principal Component 1 ({pc1_var:.2f}% Variance Explained)', fontsize=11)
+plt.ylabel(f'Principal Component 2 ({pc2_var:.2f}% Variance Explained)', fontsize=11)
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.legend(title='Wine Class / Cultivar', loc='best', frameon=True)
+plt.tight_layout()
+plt.savefig('pca_wine_clusters.png', dpi=300)
+plt.show()
+
+print("\nProcess Completed. Visual plots generated and saved successfully.")
+```
+
+
+--------------------------------------------------------------------------------
+7. EXPERIMENTAL RESULTS & NUMERICAL OUTPUT
+--------------------------------------------------------------------------------
+
+7.1 EIGENVALUE & VARIANCE DECOMPOSITION TABLE:
+-------------------------------------------------------------------------------
+ Component | Eigenvalue (λ) | Individual Variance (%) | Cumulative Variance (%)
+-------------------------------------------------------------------------------
+   PC1     |     4.7324     |         36.20%          |         36.20%
+   PC2     |     2.5111     |         19.21%          |         55.41%
+   PC3     |     1.4542     |         11.12%          |         66.53%
+   PC4     |     0.9242     |          7.07%          |         73.60%
+   PC5     |     0.8580     |          6.56%          |         80.16%
+   PC6     |     0.6453     |          4.94%          |         85.10%
+   PC7     |     0.5541     |          4.24%          |         89.34%
+   PC8     |     0.3505     |          2.68%          |         92.02%
+   PC9     |     0.2905     |          2.22%          |         94.24%
+   PC10    |     0.2523     |          1.93%          |         96.17%
+   PC11    |     0.2271     |          1.74%          |         97.91%
+   PC12    |     0.1697     |          1.30%          |         99.20%
+   PC13    |     0.1040     |          0.80%          |        100.00%
+-------------------------------------------------------------------------------
+
+7.2 PRINCIPAL COMPONENT LOADINGS (EIGENVECTOR COEFFICIENTS):
+-----------------------------------------------------------------
+ Feature Name             |   PC1 Loading   |   PC2 Loading
+-----------------------------------------------------------------
+ Alcohol                  |      +0.1443    |      +0.4837
+ Malic_Acid               |      -0.2452    |      +0.2249
+ Ash                      |      -0.0021    |      +0.3161
+ Ash_Alcanity             |      -0.2393    |      -0.0106
+ Magnesium                |      +0.1420    |      +0.2996
+ Total_Phenols            |      +0.3947    |      +0.0650
+ Flavanoids               |      +0.4229    |      -0.0034
+ Nonflavanoid_Phenols     |      -0.2985    |      +0.0288
+ Proanthocyanins          |      +0.3134    |      +0.0393
+ Color_Intensity          |      -0.0886    |      +0.5300
+ Hue                      |      +0.2967    |      -0.2792
+ OD280                    |      +0.3762    |      -0.1645
+ Proline                  |      +0.2868    |      +0.3649
+-----------------------------------------------------------------
+
+7.3 FIRST 5 SAMPLES IN TRANSFORMED 2D SPACE:
+-----------------------------------------------------------------
+ Sample Index |     PC1 Coordinate    |     PC2 Coordinate    | Wine Class
+-----------------------------------------------------------------
+      0       |         3.3168        |        -1.4434        |     1
+      1       |         2.2095        |         0.3334        |     1
+      2       |         2.5167        |        -1.0312        |     1
+      3       |         3.7571        |        -2.7564        |     1
+      4       |         1.0090        |        -0.8698        |     1
+-----------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+8. ANALYSIS & DISCUSSION
+--------------------------------------------------------------------------------
+1. Dimension Compression:
+   The original wine dataset contains 13 correlated continuous variables. By 
+   computing the eigenvalues of the standardized covariance matrix, we find that 
+   the first two components alone retain 55.41% of the total dataset variance 
+   (PC1 = 36.20%, PC2 = 19.21%). While reducing the dimensionality from 13 down 
+   to 2 (an 84.6% reduction in dimensions), more than half of the total statistical 
+   information is preserved.
+
+2. Physical Interpretation of Components:
+   - PC1 is dominated by positive loadings on Flavanoids (+0.4229), Total_Phenols 
+     (+0.3947), OD280 (+0.3762), and Proanthocyanins (+0.3134). It acts as an 
+     index of antioxidant polyphenols and general phenolic maturity. Wines with 
+     high PC1 values possess rich phenolic profiles.
+   - PC2 is heavily influenced by positive loadings on Color_Intensity (+0.5300), 
+     Alcohol (+0.4837), and Proline (+0.3649). It represents the strength, color 
+     saturation, and alcoholic body of the wine.
+
+3. Visual Discriminability (Clustering in 2D Space):
+   When the transformed data is plotted on the 2D Cartesian plane (PC1 vs. PC2):
+   - Wine Class 1 forms a distinct cluster localized in the positive PC1 region 
+     (quadrants 1 & 4), signifying high phenolic content and above-average proline/alcohol.
+   - Wine Class 2 is clustered primarily in the lower half (negative to moderate PC1, 
+     negative PC2), representing wines with lighter color intensity and lower alcohol.
+   - Wine Class 3 is sharply isolated in the negative PC1 region with moderate-to-high PC2, 
+     characterized by lower flavanoids and higher malic acid / color intensity.
+   
+   Conclusion from visual inspection: Despite PCA being an completely unsupervised 
+   technique (the algorithm had no access to the class label during transformation), 
+   the wine cultivars are naturally segregated into three well-defined, non-overlapping 
+   clusters purely by the variance captured in PC1 and PC2.
+
+
+--------------------------------------------------------------------------------
+9. VIVA-VOCE / ORAL EXAMINATION QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q1. Why is feature scaling mandatory before applying PCA?
+Ans: PCA seeks linear combinations that maximize variance. If features are on different 
+     scales (e.g., Proline ranges up to 1680 while Ash is ~2.3), features with large 
+     numerical ranges will dominate the covariance matrix and bias the principal 
+     axes toward themselves, ignoring equally informative small-scale features.
+
+Q2. What is the geometric meaning of an eigenvector and eigenvalue in PCA?
+Ans: An eigenvector represents the direction (axis) in feature space along which the data 
+     varies the most. The corresponding eigenvalue represents the magnitude of variance 
+     (spread) present along that specific directional axis.
+
+Q3. Are principal components correlated with each other?
+Ans: No. Principal components are mutually orthogonal by definition (their inner product 
+     is zero), meaning the covariance and correlation between any two distinct 
+     principal components is exactly zero.
+
+Q4. What is a Scree Plot and how is it used?
+Ans: A Scree Plot is a bar/line chart displaying eigenvalues or explained variance 
+     percentages against component rank. Analysts look for the "elbow" point—the 
+     component index where the rate of variance explained levels off—to decide the 
+     optimal number of components to retain.
+
+Q5. What is the difference between PCA and Linear Discriminant Analysis (LDA)?
+Ans: PCA is an UNSUPERVISED technique that maximizes total data variance without using 
+     class labels. LDA is a SUPERVISED technique that maximizes the ratio of between-class 
+     variance to within-class variance to optimize class separation.
+
+Q6. Can PCA be used for non-linear relationships?
+Ans: Standard PCA captures only linear correlations. For complex non-linear manifolds, 
+     Kernel PCA (KPCA) or manifold learning methods (e.g., t-SNE, UMAP) are employed.
+
+
+--------------------------------------------------------------------------------
+10. CONCLUSION
+--------------------------------------------------------------------------------
+In this experiment, Principal Component Analysis (PCA) was successfully applied 
+to the 13-dimensional Wine dataset. 
+
+Key Findings:
+1. Feature standardization ensured balanced contribution across all chemical variables.
+2. The first two principal components captured 55.41% of the overall variance 
+   (PC1: 36.20%, PC2: 19.21%).
+3. The 13-dimensional data was effectively projected onto a 2D plane without 
+   significant loss of structural relationships.
+4. Visual inspection of the 2D scatter plot showed distinct, well-separated clusters 
+   corresponding to the three wine cultivars, proving that PCA enables straightforward 
+   discrimination among wine types while dramatically reducing computational complexity.
+
+================================================================================
+                            END OF EXPERIMENT
+================================================================================
+

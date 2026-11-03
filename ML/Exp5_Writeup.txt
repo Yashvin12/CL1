@@ -1,0 +1,254 @@
+================================================================================
+                         LAB EXPERIMENT WRITE-UP / REPORT
+================================================================================
+
+EXPERIMENT TITLE:
+Car Evaluation Classification using Random Forest
+
+SUBJECT CODE: 417521      SUBJECT NAME: Machine Learning      SEM: I
+
+Department of Artificial Intelligence and Data Science Engineering, ADYPSOE
+
+--------------------------------------------------------------------------------
+1. AIM / OBJECTIVE
+--------------------------------------------------------------------------------
+To implement a Random Forest Classifier on the Car Evaluation dataset to
+classify vehicles into acceptability categories (unacc, acc, good, vgood) based
+on their features. The experiment also demonstrates feature importance ranking
+to identify which car attributes most influence acceptability.
+
+
+--------------------------------------------------------------------------------
+2. PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+Given a dataset of 1,728 cars described by 6 categorical features (buying price,
+maintenance, doors, persons, luggage boot, safety rating), build a classifier to
+predict the car's acceptability class. This is a 4-class classification problem.
+
+
+--------------------------------------------------------------------------------
+3. THEORETICAL BACKGROUND
+--------------------------------------------------------------------------------
+3.1 DECISION TREE
+A Decision Tree is a flowchart-like structure where each internal node represents
+a feature test, each branch represents the test outcome, and each leaf node holds
+a class label. It splits data based on the feature that maximizes information gain.
+
+Limitation: A single decision tree is prone to overfitting (high variance).
+
+
+3.2 RANDOM FOREST (Ensemble Learning)
+Random Forest is an ensemble method that builds multiple decision trees and
+combines their predictions by majority voting (classification).
+
+Key principles:
+a) Bagging (Bootstrap Aggregating):
+   Each tree is trained on a random bootstrap sample (sampling with replacement)
+   from the training data. Different trees see different subsets of data.
+
+b) Feature Randomness:
+   At each split in each tree, only a random subset of features (√n_features)
+   is considered. This decorrelates the trees, reducing variance.
+
+c) Aggregation (Voting):
+   Final prediction = majority vote across all n_estimators trees.
+   More trees = more stable, less overfitting.
+
+Why Random Forest > Single Decision Tree:
+   - Reduces overfitting through averaging many uncorrelated trees.
+   - More robust to noisy data.
+   - Provides feature importance scores.
+
+
+3.3 LABEL ENCODING
+The Car Evaluation dataset is entirely categorical (e.g., "low", "med", "high").
+Machine learning models require numerical inputs, so LabelEncoder converts each
+unique category to an integer:
+    low→0, med→1, high→2, vhigh→3 (order determined alphabetically)
+A separate encoder is stored for each column to allow inverse transformation.
+
+
+3.4 FEATURE IMPORTANCE
+Random Forest provides a built-in feature importance score based on the mean
+decrease in Gini impurity each feature achieves across all trees. Higher score
+= feature has more predictive power.
+
+
+3.5 EVALUATION METRICS (Multi-Class)
+   Accuracy   = Correct Predictions / Total Predictions
+   Precision  = TP / (TP + FP)  — per class
+   Recall     = TP / (TP + FN)  — per class
+   F1-Score   = 2 * P * R / (P + R)  — harmonic mean of Precision and Recall
+   Confusion Matrix: 4×4 matrix showing actual vs. predicted class counts.
+
+
+--------------------------------------------------------------------------------
+4. DATASET SPECIFICATIONS
+--------------------------------------------------------------------------------
+Dataset    : Car Evaluation Dataset (car_evaluation.csv)
+Source     : UCI Machine Learning Repository
+Samples    : 1,728 car evaluations
+Features   : 6 categorical attributes
+
+   Feature     Values
+   -------     ---------------------------------------------------------
+   buying      vhigh, high, med, low       (purchase price)
+   maint       vhigh, high, med, low       (maintenance cost)
+   doors       2, 3, 4, 5more              (number of doors)
+   persons     2, 4, more                  (passenger capacity)
+   lug_boot    small, med, big             (luggage boot size)
+   safety      low, med, high              (estimated safety rating)
+
+Target (class):
+   unacc  — Unacceptable  (1210 samples, ~70%)
+   acc    — Acceptable    ( 384 samples, ~22%)
+   good   — Good          (  69 samples,  ~4%)
+   vgood  — Very Good     (  65 samples,  ~4%)
+
+Note: Dataset is imbalanced — 'unacc' dominates.
+
+
+--------------------------------------------------------------------------------
+5. STEP-BY-STEP PROCEDURE
+--------------------------------------------------------------------------------
+Step 1 : Import libraries: pandas, sklearn (RandomForestClassifier, LabelEncoder).
+Step 2 : Load car_evaluation.csv.
+Step 3 : Drop missing values and duplicates.
+Step 4 : Apply LabelEncoder to all 7 columns (6 features + target).
+         Store each encoder for reverse-decoding predictions.
+Step 5 : Separate features X (6 columns) and target y ('class').
+Step 6 : Stratified train-test split: 80% train (1382), 20% test (346).
+Step 7 : Train RandomForestClassifier(n_estimators=100, random_state=42).
+Step 8 : Predict test set labels.
+Step 9 : Evaluate using accuracy_score and classification_report.
+Step 10: Plot 4×4 confusion matrix heatmap.
+Step 11: Plot feature importance bar chart.
+Step 12: Predict a custom sample car's acceptability class.
+
+
+--------------------------------------------------------------------------------
+6. EXPERIMENTAL RESULTS
+--------------------------------------------------------------------------------
+
+6.1 DATASET:
+    Total Samples   : 1728   |   Features: 6   |   Classes: 4
+    Training Set    : 1382 samples (80%)
+    Testing Set     :  346 samples (20%)
+
+6.2 MODEL ACCURACY:
+    Accuracy: 98.27%   (340 correct out of 346 test samples)
+
+6.3 CLASSIFICATION REPORT:
+    -----------------------------------------------------------------
+     Class    Precision   Recall    F1-Score   Support
+    -----------------------------------------------------------------
+     acc         0.97      0.95       0.96        77
+     good        0.93      0.93       0.93        14
+     unacc       0.99      1.00       0.99       242
+     vgood       1.00      0.92       0.96        13
+    -----------------------------------------------------------------
+     Accuracy                         0.98       346
+     Macro Avg    0.97      0.95       0.96       346
+     Weighted Avg 0.98      0.98       0.98       346
+    -----------------------------------------------------------------
+
+6.4 FEATURE IMPORTANCE RANKING:
+    -------------------------------------------------
+     Feature       Importance Score
+    -------------------------------------------------
+     safety           0.2779   ← Most Important
+     persons          0.2232
+     buying           0.1839
+     maint            0.1589
+     lug_boot         0.0867
+     doors            0.0694   ← Least Important
+    -------------------------------------------------
+    Observation: Safety rating and passenger capacity are the strongest
+    predictors of car acceptability.
+
+6.5 SAMPLE PREDICTION:
+    Input (encoded values): [buying=2, maint=2, doors=1, persons=2, lug_boot=1, safety=2]
+    Predicted Class: acc (Acceptable)
+
+
+--------------------------------------------------------------------------------
+7. ANALYSIS & DISCUSSION
+--------------------------------------------------------------------------------
+1. The Random Forest achieved 98.27% accuracy on a 4-class imbalanced dataset,
+   demonstrating the power of ensemble methods.
+
+2. 'unacc' (unacceptable) achieved near-perfect recall of 1.00, as it dominates
+   the training data (70%). The model is highly confident at identifying bad cars.
+
+3. 'good' and 'vgood' classes are underrepresented (~4% each), yet the model
+   still achieved 93% and 96% F1-scores respectively — a sign that Random Forest
+   handles class imbalance better than a single decision tree.
+
+4. Feature importance reveals:
+   - Safety and Persons are most decisive — unsafe or low-capacity cars are
+     immediately flagged as unacceptable.
+   - Doors contribute the least, as having 2–5 doors rarely determines quality.
+
+5. Stratified splitting was important because the dataset is imbalanced. Without
+   stratify=y, some minority classes (good, vgood) might be underrepresented in
+   the test set, giving misleading accuracy figures.
+
+
+--------------------------------------------------------------------------------
+8. VIVA QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q1. What is Random Forest and how is it different from a Decision Tree?
+Ans: Random Forest is an ensemble of multiple decision trees. Each tree is trained
+     on a random bootstrap sample and uses a random subset of features at each split.
+     Final prediction is made by majority vote. A single decision tree overfits;
+     Random Forest reduces variance by averaging many diverse trees.
+
+Q2. What is Bagging?
+Ans: Bootstrap Aggregating (Bagging) — each tree is trained on a different random
+     sample (with replacement) of the training data. This creates diversity among
+     trees, reducing correlation and improving generalization.
+
+Q3. Why is Label Encoding used here instead of One-Hot Encoding?
+Ans: Decision-tree-based models (including Random Forest) can handle ordinal
+     integer-encoded data without assuming linear relationships between encoded
+     values. Label encoding is simpler and faster for tree-based models.
+
+Q4. What does feature importance mean in Random Forest?
+Ans: Feature importance measures how much each feature reduces impurity (Gini)
+     averaged across all trees. Higher importance = feature is more useful for
+     splitting. In this experiment, 'safety' is most important (0.278).
+
+Q5. How does Random Forest handle overfitting?
+Ans: By training each tree on a different random subset of data (bagging) and
+     considering only random feature subsets at each split, the trees become
+     uncorrelated. Averaging uncorrelated predictions cancels out individual
+     errors, reducing overfitting.
+
+Q6. What is stratified splitting and why is it used?
+Ans: Stratified splitting ensures that the proportion of each class in the
+     train and test sets matches the original dataset. It is crucial for
+     imbalanced datasets (like this one where 'unacc' = 70%) to prevent
+     misleading evaluation results.
+
+
+--------------------------------------------------------------------------------
+9. CONCLUSION
+--------------------------------------------------------------------------------
+A Random Forest Classifier was successfully implemented on the Car Evaluation
+dataset (1,728 samples, 6 categorical features, 4 classes).
+
+Key Results:
+- Test Accuracy: 98.27% — very high for a 4-class imbalanced problem.
+- Best classified: 'unacc' (F1 = 0.99), due to its dominant representation.
+- Most important feature: safety (0.278), followed by persons (0.223).
+- Least important feature: doors (0.069).
+- Sample car prediction: Acceptable (acc).
+
+The experiment confirms that Random Forest is a robust, accurate ensemble
+classifier well-suited for categorical multi-class classification tasks,
+outperforming individual decision trees through bagging and feature randomization.
+
+================================================================================
+                                END OF EXPERIMENT
+================================================================================
+

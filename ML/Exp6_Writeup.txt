@@ -1,0 +1,257 @@
+================================================================================
+                         LAB EXPERIMENT WRITE-UP / REPORT
+================================================================================
+
+EXPERIMENT TITLE:
+Reinforcement Learning using Q-Learning in a Maze Environment
+
+SUBJECT CODE: 417521      SUBJECT NAME: Machine Learning      SEM: I
+
+Department of Artificial Intelligence and Data Science Engineering, ADYPSOE
+
+--------------------------------------------------------------------------------
+1. AIM / OBJECTIVE
+--------------------------------------------------------------------------------
+To implement Reinforcement Learning (Q-Learning) in a maze environment where an
+agent explores the maze, learns from rewards and penalties, and finds the optimal
+path from a start position to a goal position.
+
+
+--------------------------------------------------------------------------------
+2. PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+A 5×5 grid maze contains open cells (0) and walls (1). An agent starts at
+position (0,0) and must navigate to the goal at (4,4) by moving Up/Down/Left/Right.
+The agent receives:
+- Reward  +100 for reaching the goal
+- Penalty   -5 for hitting a wall (blocked move)
+- Penalty   -1 for every valid move (encourages shortest path)
+
+The agent must learn the optimal path purely through trial and error using Q-Learning.
+
+
+--------------------------------------------------------------------------------
+3. THEORETICAL BACKGROUND
+--------------------------------------------------------------------------------
+3.1 REINFORCEMENT LEARNING (RL)
+RL is a type of machine learning where an agent learns to make decisions by
+interacting with an environment. Unlike supervised learning (no labeled data),
+the agent learns from feedback in the form of rewards and penalties.
+
+Key Components:
+   Component        Description
+   ---------        -----------
+   Agent            The learner / decision-maker
+   Environment      The 5×5 maze grid
+   State (s)        Current position in the maze (row, col)
+   Action (a)       Move: Up(0), Down(1), Left(2), Right(3)
+   Reward (r)       +100 (goal), -5 (wall hit), -1 (valid step)
+   Policy (π)       Mapping from states to best actions
+   Q-Value Q(s,a)   Expected cumulative reward for action a in state s
+
+
+3.2 MARKOV DECISION PROCESS (MDP)
+RL problems are formalized as MDPs with the tuple: (S, A, R, P, γ)
+   S = Set of states     (25 grid cells)
+   A = Set of actions    (Up, Down, Left, Right)
+   R = Reward function   R(s, a, s')
+   P = Transition probability  (deterministic here)
+   γ = Discount factor   (γ = 0.9)
+
+The agent maximizes cumulative discounted reward:
+   G_t = r_t + γ*r_{t+1} + γ²*r_{t+2} + ... = Σ γᵏ * r_{t+k}
+
+
+3.3 Q-LEARNING
+Q-Learning is a model-free, value-based RL algorithm that learns the optimal
+action-value function Q*(s, a) — the expected cumulative reward for taking
+action a in state s and following the optimal policy thereafter.
+
+Q-Table:
+   A 2D lookup table: Q[state][action]
+   - States: 25 (5×5 maze, each cell encoded as row×5 + col)
+   - Actions: 4 (Up, Down, Left, Right)
+   - Q-Table shape: (25, 4) — initialized to all zeros
+
+Q-Learning Update Rule (Bellman Equation):
+   Q(s, a) ← Q(s, a) + α * [r + γ * max Q(s', a') − Q(s, a)]
+
+Where:
+   α (alpha)        = Learning rate = 0.1   (how fast to update Q-values)
+   γ (gamma)        = Discount factor = 0.9 (weight of future rewards)
+   r                = Immediate reward received
+   max Q(s', a')    = Maximum Q-value of the next state (best future action)
+   Q(s, a) current  = Old Q-value being updated
+
+Intuition:
+   The agent updates its estimate of how good an action is based on:
+   - Immediate reward received + discounted best future reward expected.
+   Over many episodes, Q-values converge to their optimal values.
+
+
+3.4 EPSILON-GREEDY EXPLORATION STRATEGY
+The agent faces an exploration vs. exploitation dilemma:
+   - Explore: Try random actions to discover new paths.
+   - Exploit: Use the best known action (greedy).
+
+Epsilon-greedy policy:
+   - With probability ε   → choose random action (explore)
+   - With probability 1-ε → choose action with highest Q-value (exploit)
+
+   ε starts at 1.0 (fully random) and decays each episode:
+       ε = max(min_ε, ε × decay_rate)
+       ε = max(0.01, ε × 0.995)
+
+   After 5000 episodes, ε ≈ 0.01 — agent almost always exploits learned Q-values.
+
+
+3.5 MAZE REPRESENTATION
+   0 = open/walkable cell
+   1 = wall (blocked)
+
+   Maze (5×5):
+       Col:  0  1  2  3  4
+   Row 0: [  0  0  1  0  0 ]
+   Row 1: [  0  0  1  0  1 ]
+   Row 2: [  1  0  0  0  0 ]
+   Row 3: [  0  1  1  1  0 ]
+   Row 4: [  0  0  0  0  0 ]
+
+   Start: (0,0) — top-left     Goal: (4,4) — bottom-right
+
+
+--------------------------------------------------------------------------------
+4. STEP-BY-STEP PROCEDURE
+--------------------------------------------------------------------------------
+Step 1 : Define the 5×5 maze as a NumPy array (0=open, 1=wall).
+Step 2 : Set start=(0,0), goal=(4,4). Define 4 actions (Up/Down/Left/Right).
+Step 3 : Initialize Q-table of shape (25, 4) with zeros.
+Step 4 : Set hyperparameters: α=0.1, γ=0.9, ε=1.0, decay=0.995, episodes=5000.
+Step 5 : Training loop (5000 episodes):
+         - Reset agent to start position.
+         - For each step (max 100):
+             a. Get current state (row×5 + col).
+             b. Choose action via epsilon-greedy policy.
+             c. Move to next valid position (walls block movement).
+             d. Calculate reward (+100 / -5 / -1).
+             e. Update Q-table using Bellman equation.
+             f. Break if goal is reached.
+         - Decay epsilon after each episode.
+Step 6 : Extract optimal path by greedily following Q-table from start to goal.
+Step 7 : Visualize maze with learned path using matplotlib.
+Step 8 : Print final Q-table values.
+
+
+--------------------------------------------------------------------------------
+5. EXPERIMENTAL RESULTS
+--------------------------------------------------------------------------------
+
+5.1 TRAINING CONFIGURATION:
+    Episodes         : 5000
+    Max Steps/Episode: 100
+    Learning Rate α  : 0.1
+    Discount Factor γ: 0.9
+    Initial Epsilon  : 1.0  (fully random exploration)
+    Final Epsilon    : ~0.01 (almost fully exploiting)
+    Epsilon Decay    : 0.995 per episode
+    Q-Table Shape    : (25, 4)
+
+5.2 LEARNED OPTIMAL PATH:
+    (0,0) → (1,0) → (1,1) → (2,1) → (2,2) → (2,3) → (2,4) → (3,4) → (4,4)
+
+    Total Steps to Goal: 8 steps
+    Goal Reached: Yes ✓
+
+5.3 PATH VISUALIZATION (Grid):
+       Col:  0   1   2   3   4
+    Row 0: [ S → .   ■   .   . ]    S = Start (0,0)
+    Row 1: [ ↓   ↓   ■   .   ■ ]    G = Goal  (4,4)
+    Row 2: [ ■  ↓→→→→→   .   . ]    ■ = Wall  (blocked)
+    Row 3: [ .   ■   ■   ■   ↓ ]    → path shown with arrows
+    Row 4: [ .   .   .   .   G ]
+
+5.4 REWARD STRUCTURE OUTCOME:
+    - At each of the 8 steps: reward = -1 (valid move)
+    - At final step (reaching goal): reward = +100
+    - Total episode reward ≈ +100 - 7 = +93
+
+
+--------------------------------------------------------------------------------
+6. ANALYSIS & DISCUSSION
+--------------------------------------------------------------------------------
+1. The Q-Learning agent successfully learned the optimal 8-step path through
+   the maze after 5000 training episodes, demonstrating convergence.
+
+2. Exploration vs. Exploitation: Starting with ε=1.0 allows the agent to
+   thoroughly explore all viable paths early in training. As ε decays to 0.01,
+   the agent increasingly exploits its learned Q-values, reinforcing the best path.
+
+3. The step penalty (-1 per move) is crucial — it incentivizes the agent to
+   find the SHORTEST path, not just any path to the goal.
+
+4. The wall penalty (-5) quickly teaches the agent to avoid blocked cells,
+   as hitting a wall wastes steps without making progress.
+
+5. The Q-table (25×4) converges to high positive values along the optimal path
+   and near-zero/negative values for dead-end moves, effectively encoding the
+   maze solution in numerical form.
+
+
+--------------------------------------------------------------------------------
+7. VIVA QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q1. What is the difference between Reinforcement Learning and Supervised Learning?
+Ans: Supervised learning trains on labeled input-output pairs. RL has no labels —
+     the agent learns by interacting with the environment and receiving scalar
+     rewards/penalties as feedback. RL learns what to do through trial and error.
+
+Q2. What is a Q-table?
+Ans: A Q-table is a 2D matrix storing Q(s,a) — the expected cumulative reward
+     for taking action a in state s. Rows = states, Columns = actions. Updated
+     iteratively using the Bellman equation until it converges to optimal values.
+
+Q3. What is the Bellman equation in Q-Learning?
+Ans: Q(s,a) ← Q(s,a) + α[r + γ·max Q(s',a') − Q(s,a)]
+     It updates the Q-value by adding the difference between the target
+     (immediate reward + discounted future reward) and the current estimate,
+     scaled by the learning rate α.
+
+Q4. What is the role of the discount factor γ?
+Ans: γ (0 to 1) determines how much future rewards are valued vs. immediate ones.
+     γ=0 → agent is greedy, only cares about immediate reward.
+     γ=0.9 → agent values future rewards, encouraging paths that lead to the goal.
+
+Q5. What is the epsilon-greedy strategy?
+Ans: A method to balance exploration and exploitation. With probability ε, the
+     agent picks a random action (explores); with probability 1-ε, it picks the
+     greedy action (exploits best known Q-value). ε decays over time to shift
+     from exploration to exploitation as the agent learns.
+
+Q6. What is an MDP?
+Ans: A Markov Decision Process is the mathematical framework for RL problems.
+     Defined by (S, A, R, P, γ): States, Actions, Reward function, Transition
+     Probability, and Discount factor. The "Markov" property means the next state
+     depends only on the current state and action, not the history.
+
+
+--------------------------------------------------------------------------------
+8. CONCLUSION
+--------------------------------------------------------------------------------
+Q-Learning was successfully implemented to train an agent to navigate a 5×5 maze
+from start (0,0) to goal (4,4).
+
+Key Results:
+- Training: 5000 episodes with epsilon-greedy exploration (ε: 1.0 → 0.01).
+- Q-table (25×4) converged to encode the optimal navigation policy.
+- Optimal path found: (0,0)→(1,0)→(1,1)→(2,1)→(2,2)→(2,3)→(2,4)→(3,4)→(4,4).
+- Steps to goal: 8 (optimal for this maze).
+- The agent learned purely through trial and error — no labeled data or prior map.
+
+The experiment demonstrates that Q-Learning can efficiently discover optimal
+strategies in environments with delayed rewards through systematic exploration
+and Bellman-equation-based value updates.
+
+================================================================================
+                                END OF EXPERIMENT
+================================================================================
+

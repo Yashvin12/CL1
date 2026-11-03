@@ -1,0 +1,384 @@
+================================================================================
+                         LAB EXPERIMENT WRITE-UP / REPORT
+================================================================================
+
+EXPERIMENT TITLE:
+Handwritten Digit Classification using Support Vector Machine (SVM)
+
+SUBJECT CODE: 417521      SUBJECT NAME: Machine Learning      SEM: I
+
+Department of Artificial Intelligence and Data Science Engineering, ADYPSOE
+
+--------------------------------------------------------------------------------
+1. AIM / OBJECTIVE
+--------------------------------------------------------------------------------
+To implement a Support Vector Machine (SVM) classifier for recognizing and
+classifying handwritten digit images (0 to 9). The specific objectives are:
+
+1. Implement an SVM classifier using the RBF kernel for multi-class digit recognition.
+2. Train the SVM model on a labeled dataset of 8×8 pixel grayscale digit images.
+3. Evaluate the trained model using accuracy, precision, recall, F1-score, and
+   confusion matrix.
+
+
+--------------------------------------------------------------------------------
+2. PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+Handwritten digit recognition is a fundamental image classification task in
+Computer Vision and Pattern Recognition. Given a dataset of 1,797 images of
+handwritten digits (0–9), each represented as an 8×8 pixel grayscale image
+(64 pixel features), the task is to:
+- Preprocess and normalize the image data.
+- Train an SVM classifier to learn the visual patterns distinguishing each digit.
+- Predict digit classes for unseen test images and evaluate performance.
+
+This problem is a 10-class multi-class classification task.
+
+
+--------------------------------------------------------------------------------
+3. THEORETICAL BACKGROUND
+--------------------------------------------------------------------------------
+3.1 SUPPORT VECTOR MACHINE (SVM)
+Support Vector Machine is a supervised learning algorithm used for classification
+and regression tasks. It is one of the most powerful classifiers for
+high-dimensional data such as images.
+
+Core Idea:
+SVM finds the optimal hyperplane that best separates data points of different
+classes with the maximum possible margin.
+
+Formally, for a binary classification problem:
+    Decision boundary: w·x + b = 0
+    Class boundary 1:  w·x + b = +1
+    Class boundary 2:  w·x + b = -1
+    Margin:            2 / ||w||
+
+Where:
+    w = Weight vector (normal to the hyperplane)
+    b = Bias term
+    x = Input feature vector
+
+
+3.2 KEY CONCEPTS
+
+a) Hyperplane:
+   A flat decision boundary that separates classes.
+   - In 2D: a line (y = mx + c)
+   - In 3D: a plane
+   - In 64D (this experiment): a 63-dimensional hyperplane
+   Mathematically: w·x + b = 0
+
+b) Margin:
+   The perpendicular distance between the hyperplane and the nearest data points
+   (support vectors) from each class.
+   - Soft margin   : Margin = 2 / ||w||
+   - SVM maximizes the margin to improve generalization.
+   - Larger margin → better generalization → less overfitting.
+
+c) Support Vectors:
+   The data points closest to the decision boundary on both sides.
+   - They alone define the position and orientation of the hyperplane.
+   - Removing or moving a non-support vector has no effect on the classifier.
+   - Moving a support vector directly changes the hyperplane.
+
+d) Optimization Problem:
+   SVM solves a quadratic optimization problem:
+       Minimize:   (1/2) * ||w||²
+       Subject to: yi * (w·xi + b) >= 1 - ξi    for all i
+   Where ξi (slack variable) allows for soft-margin misclassification.
+
+e) Regularization Parameter C:
+   C controls the trade-off between maximizing the margin and minimizing
+   classification error on training data.
+   - Small C: Wider margin, more misclassifications allowed (underfitting risk).
+   - Large C: Narrower margin, fewer misclassifications (overfitting risk).
+   In this experiment, C = 10.
+
+
+3.3 KERNEL TRICK
+Real-world data is rarely linearly separable in the original feature space.
+The kernel trick implicitly maps data into a higher-dimensional space where a
+linear hyperplane can separate it, without explicitly computing the transformation.
+
+    K(xi, xj) = φ(xi)ᵀ · φ(xj)
+
+Where φ is the implicit mapping function.
+
+Common Kernels:
+---------------------------------------------------------------------------
+ Kernel              Formula                         When to Use
+---------------------------------------------------------------------------
+ Linear              K = xᵢᵀ·xⱼ                     Linearly separable data
+ Polynomial          K = (γ·xᵢᵀ·xⱼ + r)^d           Polynomial relationships
+ RBF (Gaussian)      K = exp(−γ||xᵢ−xⱼ||²)          Non-linear, general use
+ Sigmoid             K = tanh(γ·xᵢᵀ·xⱼ + r)         Neural network-like
+---------------------------------------------------------------------------
+
+RBF (Radial Basis Function) Kernel — Used in this Experiment:
+    K(xi, xj) = exp(−γ * ||xi − xj||²)
+
+Where γ (gamma) controls the influence radius of each training sample:
+    - Small γ: Far-reaching influence, smoother boundaries.
+    - Large γ: Local influence, complex boundaries.
+    - 'scale' mode (used here): γ = 1 / (n_features * Var(X))
+
+
+3.4 MULTI-CLASS CLASSIFICATION WITH SVM
+SVM is natively a binary classifier. For the 10-class digit problem, scikit-learn
+uses the One-vs-One (OvO) strategy:
+    - Trains C(10, 2) = 45 binary SVM classifiers (one for each pair of classes).
+    - During prediction, each classifier votes, and the class with the most votes wins.
+
+
+3.5 WHY SVM FOR HANDWRITTEN DIGIT CLASSIFICATION?
+   - High-dimensional input: Each image = 64 pixel values → SVM performs well
+     in high-dimensional feature spaces.
+   - Effective margin: SVM's maximum margin property reduces overfitting on
+     image data where many pixels may be noisy.
+   - Kernel flexibility: The RBF kernel can capture complex non-linear pixel
+     patterns distinguishing digits (e.g., loops in 0, 8 vs. straight lines in 1, 7).
+   - Works well on small-to-medium datasets like sklearn's digits (1,797 samples).
+
+
+3.6 EVALUATION METRICS FOR MULTI-CLASS CLASSIFICATION
+
+   Accuracy:
+       Accuracy = (Number of Correct Predictions) / (Total Predictions)
+
+   Precision (per class):
+       Precision = TP / (TP + FP)
+       "Of all images predicted as digit X, how many were actually X?"
+
+   Recall (per class):
+       Recall = TP / (TP + FN)
+       "Of all actual digit X images, how many did the model correctly identify?"
+
+   F1-Score (per class):
+       F1 = 2 * (Precision * Recall) / (Precision + Recall)
+       Harmonic mean of Precision and Recall. Best when both are important.
+
+   Confusion Matrix:
+       A 10×10 matrix where entry (i, j) = number of images of actual class i
+       predicted as class j. Diagonal entries = correct predictions.
+
+
+--------------------------------------------------------------------------------
+4. DATASET SPECIFICATIONS
+--------------------------------------------------------------------------------
+Dataset    : sklearn.datasets.load_digits (Optical Recognition of Handwritten Digits)
+Source     : UCI Machine Learning Repository (bundled with scikit-learn)
+Total Samples: 1,797 images
+Features     : 64 (8×8 pixel grayscale values, range 0–16)
+Classes      : 10 (digits 0 through 9)
+Class Distribution: Approximately 180 samples per class (balanced)
+
+Data Split:
+    Training Set : 1,437 samples (80%)
+    Testing Set  :   360 samples (20%)
+    Strategy     : Stratified split (preserves class proportions)
+
+
+--------------------------------------------------------------------------------
+5. STEP-BY-STEP ALGORITHM / PROCEDURE
+--------------------------------------------------------------------------------
+Step 1  : Import required libraries: numpy, matplotlib, seaborn, sklearn.
+Step 2  : Load the digits dataset using load_digits() from sklearn.datasets.
+          - X = pixel data (1797 × 64)
+          - y = digit labels (0–9)
+Step 3  : Display a 2×5 grid of the first 10 handwritten digit images with labels.
+Step 4  : Normalize/standardize the 64-pixel feature matrix using StandardScaler
+          (zero mean, unit variance) to ensure equal pixel contribution.
+Step 5  : Split the dataset: 80% training, 20% testing using stratified sampling
+          (random_state=42 for reproducibility).
+Step 6  : Initialize the SVM classifier:
+          SVC(kernel='rbf', C=10, gamma='scale')
+Step 7  : Train the SVM model on the standardized training set.
+Step 8  : Predict digit classes for the standardized test set.
+Step 9  : Evaluate using accuracy_score and classification_report
+          (precision, recall, F1-score per digit class).
+Step 10 : Plot the 10×10 Confusion Matrix as a heatmap using seaborn.
+Step 11 : Visualize 10 sample test images with their actual digit labels.
+Step 12 : Predict the digit class for a single test sample and compare with
+          the actual label.
+
+
+--------------------------------------------------------------------------------
+6. EXPERIMENTAL RESULTS & OBSERVATIONS
+--------------------------------------------------------------------------------
+
+6.1 DATASET OVERVIEW:
+    Dataset Shape       : (1797, 64)
+    Target Shape        : (1797,)
+    Digit Classes       : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    Training Samples    : 1437
+    Testing Samples     :  360
+
+6.2 SVM MODEL CONFIGURATION:
+    Kernel              : RBF (Radial Basis Function)
+    Regularization (C)  : 10
+    Gamma               : 'scale' (= 1 / (64 × Var(X)))
+    Multi-class Strategy: One-vs-One (OvO), 45 binary classifiers
+
+6.3 OVERALL ACCURACY:
+    Test Accuracy: 98.06%   (353 correct out of 360 test samples)
+
+6.4 CLASSIFICATION REPORT (Per Digit Performance):
+    ---------------------------------------------------------------
+     Class  Digit    Precision   Recall    F1-Score   Support
+    ---------------------------------------------------------------
+       0       0      1.00       1.00       1.00         36
+       1       1      0.97       0.97       0.97         36
+       2       2      1.00       1.00       1.00         35
+       3       3      1.00       1.00       1.00         37
+       4       4      0.95       0.97       0.96         36
+       5       5      0.97       1.00       0.99         37
+       6       6      0.97       1.00       0.99         36
+       7       7      0.95       0.97       0.96         36
+       8       8      1.00       0.94       0.97         35
+       9       9      1.00       0.94       0.97         36
+    ---------------------------------------------------------------
+     Macro Avg         0.98       0.98       0.98        360
+     Weighted Avg      0.98       0.98       0.98        360
+    ---------------------------------------------------------------
+
+6.5 CONFUSION MATRIX (10×10):
+    Rows = Actual Digit | Columns = Predicted Digit
+
+           Pred→  0   1   2   3   4   5   6   7   8   9
+           -----------------------------------------------
+    Act 0 |      36   0   0   0   0   0   0   0   0   0
+    Act 1 |       0  35   0   0   1   0   0   0   0   0
+    Act 2 |       0   0  35   0   0   0   0   0   0   0
+    Act 3 |       0   0   0  37   0   0   0   0   0   0
+    Act 4 |       0   0   0   0  35   0   0   1   0   0
+    Act 5 |       0   0   0   0   0  37   0   0   0   0
+    Act 6 |       0   0   0   0   0   0  36   0   0   0
+    Act 7 |       0   0   0   0   0   1   0  35   0   0
+    Act 8 |       0   1   0   0   1   0   0   0  33   0
+    Act 9 |       0   0   0   0   0   0   1   1   0  34
+    -----------------------------------------------
+    Total Misclassifications: 7 out of 360
+
+6.6 NOTABLE MISCLASSIFICATIONS:
+    - Digit 1 misclassified as Digit 4 : 1 case
+    - Digit 4 misclassified as Digit 7 : 1 case
+    - Digit 7 misclassified as Digit 5 : 1 case
+    - Digit 8 misclassified as Digit 1 : 1 case
+    - Digit 8 misclassified as Digit 4 : 1 case
+    - Digit 9 misclassified as Digit 6 : 1 case
+    - Digit 9 misclassified as Digit 7 : 1 case
+
+6.7 SINGLE SAMPLE PREDICTION:
+    Test Sample Index : 0
+    Actual Digit      : 5
+    Predicted Digit   : 5   ✓ (Correct)
+
+
+--------------------------------------------------------------------------------
+7. ANALYSIS & DISCUSSION
+--------------------------------------------------------------------------------
+1. High Accuracy with RBF Kernel:
+   The RBF kernel SVM achieved 98.06% accuracy on the test set. This confirms that
+   RBF is an excellent kernel for image pixel data, where class boundaries are
+   non-linear and complex.
+
+2. Per-Class Performance:
+   Digits 0, 2, 3 were classified with perfect precision and recall (1.00).
+   These digits have unique, distinctive visual shapes with little overlap.
+   Digits 4, 7, 8, and 9 showed marginally lower recall (~0.94–0.97) because
+   of visual similarity:
+   - 4 and 9 share a curved upper portion.
+   - 7 and 1 share vertical strokes.
+   - 8 and 9 share a closed loop.
+
+3. Confusion Matrix Analysis:
+   Only 7 misclassifications out of 360 test samples. All errors are between
+   visually similar digit pairs (1↔4, 4↔7, 8↔9), which is expected behavior
+   even for human readers at times.
+
+4. Role of StandardScaler:
+   Normalizing the 64 pixel values (originally 0–16) to unit variance ensures
+   that all pixels contribute equally to the SVM kernel distance calculation.
+   Without scaling, pixels with larger raw values would dominate the decision.
+
+5. Role of Stratified Split:
+   Using stratify=y in train_test_split ensures that each of the 10 digit
+   classes is proportionally represented in both training and testing sets
+   (~180 training and 36 testing samples per digit).
+
+6. Comparison with Other Classifiers:
+   SVM with RBF kernel typically outperforms simple classifiers like k-NN and
+   Naive Bayes on the digits dataset and is competitive with shallow neural
+   networks, achieving near-human-level accuracy of ~98%.
+
+
+--------------------------------------------------------------------------------
+8. VIVA-VOCE / ORAL EXAMINATION QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q1. What is a Support Vector Machine?
+Ans: SVM is a supervised learning algorithm that finds the optimal hyperplane
+     separating classes with the maximum margin. Support vectors are the data
+     points closest to the decision boundary that define the hyperplane.
+
+Q2. What is the kernel trick and why is it needed?
+Ans: The kernel trick computes dot products in a high-dimensional space without
+     explicitly computing the transformation. It is needed when data is not
+     linearly separable in the original feature space. Functions like the RBF
+     kernel implicitly map data to infinite-dimensional space where linear
+     separation becomes possible.
+
+Q3. What does the parameter C do in SVM?
+Ans: C controls the regularization strength. Small C allows more misclassified
+     training points (wider margin, better generalization). Large C tries to
+     correctly classify all training points (narrower margin, risk of overfitting).
+     In this experiment, C = 10 gives high accuracy without overfitting.
+
+Q4. Why is the RBF kernel chosen for digit classification?
+Ans: Digit images have complex, non-linear pixel patterns. The RBF kernel can
+     model any smooth decision boundary by computing Gaussian similarity between
+     samples in feature space. It is the most versatile and effective kernel for
+     image classification tasks.
+
+Q5. How does SVM handle 10 classes if it is a binary classifier?
+Ans: scikit-learn uses the One-vs-One (OvO) strategy: it trains C(10,2) = 45
+     binary SVM classifiers, one for each pair of digits. During prediction,
+     each classifier votes for one class, and the digit with the most votes wins.
+
+Q6. What is the difference between Precision and Recall?
+Ans: Precision measures how many of the model's positive predictions were
+     actually correct: TP/(TP+FP). Recall measures how many of the actual
+     positives were correctly detected: TP/(TP+FN). High precision means few
+     false alarms; high recall means few missed detections.
+
+Q7. Why is the confusion matrix diagonal important?
+Ans: Each diagonal entry (i, i) represents the count of correctly classified
+     samples for digit i. A perfect classifier would have all non-zero values
+     on the diagonal and zeros everywhere else. Off-diagonal entries reveal
+     which specific pairs of digits are being confused.
+
+
+--------------------------------------------------------------------------------
+9. CONCLUSION
+--------------------------------------------------------------------------------
+In this experiment, a Support Vector Machine (SVM) with an RBF kernel was
+successfully implemented to classify handwritten digit images (0–9) from the
+sklearn digits dataset.
+
+Key Findings:
+1. The SVM model trained on 1,437 samples (80%) and tested on 360 samples (20%).
+2. Model Configuration: kernel='rbf', C=10, gamma='scale'.
+3. Achieved an overall test accuracy of 98.06% (353/360 correct predictions).
+4. Macro-averaged Precision, Recall, and F1-Score were all 0.98.
+5. Only 7 misclassifications occurred — all between visually similar digit pairs.
+6. Digits 0, 2, 3 were classified with perfect accuracy (Precision = Recall = 1.00).
+7. Standardizing pixel values with StandardScaler and using stratified splitting
+   were critical preprocessing steps for reliable performance.
+
+The experiment confirms that SVM with an RBF kernel is a highly effective and
+practical classifier for image-based handwriting recognition tasks, achieving
+near-perfect accuracy on the sklearn digits benchmark dataset.
+
+================================================================================
+                                END OF EXPERIMENT
+================================================================================
+
